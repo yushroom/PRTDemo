@@ -1,0 +1,17 @@
+Release/
+PRTDemo/Release/
+Debug/
+PRTDemo/Debug/
+PRTDemo/models
+*.exe
+*.pdb
+*~
+
+# Visual studio files
+/ipch
+*.sdf
+*.opensdf
+*.ipch
+*.suo
+*.user
+*.psess
