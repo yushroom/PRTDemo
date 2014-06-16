@@ -9,8 +9,6 @@
 const int numBands   = 5;
 const int sqrtNumSamples = 20;
 
-
-
 int main()
 {
 	srand(time(NULL));
@@ -24,7 +22,9 @@ int main()
 
 	printf("    Load model and precompute SH functions...\n");
 	Scene scene;
-	scene.addModelFromFile("models/Buddha4.obj");
+	scene.addModelFromFile("models/Buddha4.obj"); 
+	//scene.addModelFromFile("models/bunny.obj");
+	//scene.addModelFromFile("models/head_sad.x");
 	scene.generateDirectCoeffs(sampler, numBands);
 
 	auto endTime = Clock::now();

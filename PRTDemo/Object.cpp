@@ -73,9 +73,9 @@ Object::Object(const char* path)
 
 bool Object::doesRayHitObject(Ray& ray) const
 {
-	if (ray.intersectsAABB(aabb)) {
+	//cout << "Object::doesRayHitObject" << endl;
+	if (!aabb.intersect(ray))
 		return false;
-	}
 
 	// test each triangle individually
 	return grid->intersect(ray);

@@ -105,7 +105,7 @@ void PRTRenderer::compileShader(const char* vertFileName, const char* fragFileNa
 
 void PRTRenderer::changeMatrics()
 {
-	this->modelMatrix = glm::rotate(this->modelMatrix, glm::radians(30.f), vec3(0.0f,1.0f,0.0f));
+	this->modelMatrix = glm::rotate(this->modelMatrix, glm::radians(-30.f), vec3(0.0f,1.0f,0.0f));
 	mat4 mv = viewMatrix * modelMatrix;
 	glfwGetFramebufferSize(window, &width, &height);
 	mat4 projection = glm::perspective(45.0f, float(width)/height, 0.1f, 1000.0f);
@@ -256,66 +256,13 @@ void PRTRenderer::render2(Scene& scene)
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
-
-
 }
 
-//void PRTRenderer::renderPRT(Object* model, Color* light, Color** coeffs, int bands)
-//{
-//	while (!glfwWindowShouldClose(window)) {
-//		
-//		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//		glMatrixMode(GL_MODELVIEW);
-//		glLoadIdentity();
-//		    // Move back
-//    glTranslatef(0.0, 0.0, -zoom);
-//    // Rotate the view
-//    glRotatef(beta, 1.0, 0.0, 0.0);
-//    glRotatef(alpha, 0.0, 0.0, 1.0);
-//
-//		//if (bAnim) changeMatrics()
-//		glBegin(GL_TRIANGLES);
-//		for (int i = 0; i < model->indices.size(); i += 3)
-//		{
-//			int idx1 = model->indices[i];
-//			int idx2 = model->indices[i+1];
-//			int idx3 = model->indices[i+2];
-//			Vector3& v0 = model->vertices[idx1].m_pos;
-//			Vector3& v1 = model->vertices[idx2].m_pos;
-//			Vector3& v2 = model->vertices[idx3].m_pos;
-//			Color c0 (0.0f, 0.0f, 0.0f);
-//			Color c1 (0.0f, 0.0f, 0.0f);
-//			Color c2 (0.0f, 0.0f, 0.0f);
-//			for (int k = 0; k < bands*bands; k++)
-//			{
-//				c0.r += (light[k].r * coeffs[idx1][k].r);
-//				c0.g += (light[k].g * coeffs[idx1][k].g);
-//				c0.b += (light[k].b * coeffs[idx1][k].b);
-//				c1.r += (light[k].r * coeffs[idx2][k].r);
-//				c1.g += (light[k].g * coeffs[idx2][k].g);
-//				c1.b += (light[k].b * coeffs[idx2][k].b);
-//				c2.r += (light[k].r * coeffs[idx3][k].r);
-//				c2.g += (light[k].g * coeffs[idx3][k].g);
-//				c2.b += (light[k].b * coeffs[idx3][k].b);
-//			}
-//			glColor3f(c0.r, c0.g, c0.b);
-//			glVertex3f(v0.x, v0.y, v0.z);
-//			glColor3f(c1.r, c1.g, c1.b);
-//			glVertex3f(v1.x, v1.y, v1.z);
-//			glColor3f(c2.r, c2.g, c2.b);
-//			glVertex3f(v2.x, v2.y, v2.z);
-//		}
-//		glEnd();
-//
-//		glfwSwapBuffers(window);
-//		glfwPollEvents();
-//	}
-//}
 
+// glfw call-back function
 //========================================================================
 // Print errors
 //========================================================================
-
 void PRTRenderer::error_callback(int error, const char* description)
 {
     fprintf(stderr, "Error: %s\n", description);

@@ -21,6 +21,7 @@ using std::chrono::duration_cast;
 
 typedef std::chrono::high_resolution_clock Clock;
 
+
 enum LIGHTING_TYPE
 {
 	LIGHTING_TYPE_GL = 0,			// old way
