@@ -1,12 +1,9 @@
 #include "Scene.h"
 
-
-
-
 bool Scene::addModelFromFile(const char* path)
 {
 	Object* obj = new Object(path);
-	cout << "		Model: # of vetices = " << obj->vertices.size() << ", # of triangles = " << obj->indices.size()/3 << endl;
+	cout << "	Model: # of vetices = " << obj->vertices.size() << ", # of triangles = " << obj->indices.size()/3 << endl;
 	object.push_back(obj);
 	return true;
 }
@@ -23,9 +20,9 @@ bool Scene::generateDirectCoeffs(Sampler& sampler, int numBands)
 		{
 			Vertex& currentVertex = object[objIdx]->vertices[i];
 			if (NULL == currentVertex.unshadowedCoeffs)
-				currentVertex.unshadowedCoeffs = new float[numFunctions];
+				currentVertex.unshadowedCoeffs = new vec3[numFunctions];
 			if (NULL == currentVertex.shadowedCoeffs)
-				currentVertex.shadowedCoeffs = new float[numFunctions];
+				currentVertex.shadowedCoeffs = new vec3[numFunctions];
 			if (NULL == currentVertex.unshadowedCoeffs || NULL == currentVertex.shadowedCoeffs) {
 				cout << "[ERROR] Unable to create space for vertex SH coefficients" << endl;
 				exit(1);
@@ -46,8 +43,10 @@ bool Scene::generateDirectCoeffs(Sampler& sampler, int numBands)
 			Vertex& currentVertex = object[objIdx]->vertices[i];
 
 			for (int j = 0; j < numFunctions; j++) {
-				currentVertex.unshadowedCoeffs[j] = 0.f;
-				currentVertex.shadowedCoeffs[j] = 0.f;
+				for (int k = 0; k < 3; k++) {
+					currentVertex.unshadowedCoeffs[j][k] = 0.f;
+					currentVertex.shadowedCoeffs[j][k] = 0.f;
+				}
 			}
 
 			for (int j = 0; j < sampler.size(); j ++)
@@ -58,7 +57,8 @@ bool Scene::generateDirectCoeffs(Sampler& sampler, int numBands)
 					Ray ray(currentVertex.position + 2*EPSILON*currentVertex.normal, sampler[j].direction);
 					//Ray ray(currentVertex.position, sampler[j].direction);
 					bool rayBlocked = isRayBlocked(ray);
-					
+					//bool rayBlocked = false;
+					currentVertex.isBlocked[j] = rayBlocked;
 					for (int k = 0; k < numFunctions; k++)
 					{
 						float contribution = cosineTerm * sampler[j].shValues[k];
@@ -80,6 +80,11 @@ bool Scene::generateDirectCoeffs(Sampler& sampler, int numBands)
 			}
 		}
 	}
+	return true;
+}
+
+bool Scene::generateDirectCoeffsGS(Sampler& sampler, int numBands )
+{
 	return true;
 }
 

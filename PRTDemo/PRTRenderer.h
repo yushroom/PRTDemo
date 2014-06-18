@@ -56,8 +56,8 @@ private:
 	// display control
 	static bool bAnim;
 	static bool locked;
-	static GLfloat alpha;
-	static GLfloat beta;
+	static GLfloat alpha;	// polar angles for light rotation - theta
+	static GLfloat beta;	// ploar angles for light rotation - phi
 	static GLfloat zoom;
 	static int cursorX;
 	static int cursorY;

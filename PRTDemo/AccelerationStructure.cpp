@@ -15,7 +15,7 @@ Grid::Grid(Object* model) : model(model), cells(NULL) //, cellMemoryPool(NULL)
 	bbox.expand(model->aabb.min);
 	// create the grid
 	vec3 delta = bbox.max - bbox.min;
-	cout << "bbox.min = (" << bbox.min.x << ", " << bbox.min.y << ", " << bbox.min.z << ") max = (" << bbox.max.x << ", " << bbox.max.y << ", " << bbox.max.z << ")\n";
+	//cout << "bbox.min = (" << bbox.min.x << ", " << bbox.min.y << ", " << bbox.min.z << ") max = (" << bbox.max.x << ", " << bbox.max.y << ", " << bbox.max.z << ")\n";
 #if 1
 	uint8_t maxAxis = bbox.majorAxis();
 	float invMaxSize = 1.f / delta[maxAxis];
@@ -35,11 +35,11 @@ Grid::Grid(Object* model) : model(model), cells(NULL) //, cellMemoryPool(NULL)
 	}
 #endif
 	cellSize = vec3(delta.x/nCell[0], delta.y/nCell[1], delta.z/nCell[2]);
-	cout << "nCell    " << nCell[0] << ' ' << nCell[1] << ' ' << nCell[2] << endl; 
-	cout << "cellSize " << cellSize.x << ' ' << cellSize.x << ' ' << cellSize.x << endl; 
+	//cout << "nCell    " << nCell[0] << ' ' << nCell[1] << ' ' << nCell[2] << endl; 
+	//cout << "cellSize " << cellSize.x << ' ' << cellSize.x << ' ' << cellSize.x << endl; 
 	// allocate memory
 	ncell = nCell[0] * nCell[1] * nCell[2];
-	cout << "ncell    " << ncell << endl;
+	//cout << "ncell    " << ncell << endl;
 	cells = new Cell*[ncell];
 	//for (int i = 0; i < ncell; i++)
 	//	cells[i] = new Cell(model);
@@ -83,7 +83,7 @@ Grid::Grid(Object* model) : model(model), cells(NULL) //, cellMemoryPool(NULL)
 	for (int i = 0; i < ncell; i++)
 		if (cells[i] != NULL && maxn < cells[i]->triangles.size())
 			maxn = cells[i]->triangles.size();
-	cout << "max # in grid: " << maxn << endl;
+	cout << "	max # in grid: " << maxn << endl;
 }
 
 const float EPSILON2 = 0.0001f;

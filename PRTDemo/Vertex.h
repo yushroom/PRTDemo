@@ -11,7 +11,6 @@ public:
 			normal = glm::normalize(normal);
 	}
 
-
 	~Vertex() {
 		if(unshadowedCoeffs)
 			delete [] unshadowedCoeffs;
@@ -26,8 +25,12 @@ public:
 	vec3 normal;
 	vec3 litColor;
 	vec3 diffuseMaterial;
-	float* unshadowedCoeffs;
-	float* shadowedCoeffs;
+	//float* unshadowedCoeffs;
+	//float* shadowedCoeffs;
+	vec3* unshadowedCoeffs;
+	vec3* shadowedCoeffs;
+
+	bool* isBlocked;	// true if the ray in this direction is blocked;
 };
 
 #endif

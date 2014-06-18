@@ -44,12 +44,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>D:\workspace\Assimp\include;D:\workspace\glew-1.10.0\include;D:\workspace\glfw-3.0.4\include;D:\workspace\glm-0.9.5.3\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\workspace\Assimp\include;D:\workspace\glew-1.10.0\include;D:\workspace\glfw-3.0.4\include;D:\workspace\glm-0.9.5.3\glm;$(OPENCV_DIR)/../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>D:\workspace\Assimp\lib\x86;D:\workspace\glew-1.10.0\lib\Release\Win32;D:\workspace\glfw-3.0.4\build\src\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32.lib;glfw3.lib;OpenGL32.lib;GLU32.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\workspace\Assimp\lib\x86;D:\workspace\glew-1.10.0\lib\Release\Win32;D:\workspace\glfw-3.0.4\build\src\Debug;$(OPENCV_DIR)/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glew32.lib;glfw3.lib;OpenGL32.lib;GLU32.lib;assimp.lib;opencv_core246d.lib;opencv_highgui246d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -59,14 +59,14 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>D:\workspace\Assimp\include;D:\workspace\glew-1.10.0\include;D:\workspace\glfw-3.0.4\include;D:\workspace\glm-0.9.5.3\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\workspace\Assimp\include;D:\workspace\glew-1.10.0\include;D:\workspace\glfw-3.0.4\include;D:\workspace\glm-0.9.5.3\glm;$(OPENCV_DIR)/../../include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>D:\workspace\Assimp\lib\x86;D:\workspace\glew-1.10.0\lib\Release\Win32;D:\workspace\glfw-3.0.4\build\src\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32.lib;glfw3.lib;OpenGL32.lib;GLU32.lib;assimp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\workspace\Assimp\lib\x86;D:\workspace\glew-1.10.0\lib\Release\Win32;D:\workspace\glfw-3.0.4\build\src\Release;$(OPENCV_DIR)/lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>glew32.lib;glfw3.lib;OpenGL32.lib;GLU32.lib;assimp.lib;opencv_core246.lib;opencv_highgui246.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -80,6 +80,7 @@
     <ClCompile Include="Scene.cpp" />
     <ClCompile Include="ShaderProgram.cpp" />
     <ClCompile Include="SHEval.cpp" />
+    <ClCompile Include="SHRotate.cpp" />
     <ClCompile Include="Vertex.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -94,6 +95,7 @@
     <ClInclude Include="Scene.h" />
     <ClInclude Include="ShaderProgram.h" />
     <ClInclude Include="SHEval.h" />
+    <ClInclude Include="SHRotate.h" />
     <ClInclude Include="Vertex.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

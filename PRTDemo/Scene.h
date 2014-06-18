@@ -9,7 +9,8 @@ class Scene
 {
 public:
 	bool addModelFromFile(const char* path);
-	bool generateDirectCoeffs(Sampler& sampler, int numBands);
+	bool generateDirectCoeffs(Sampler& sampler, int numBands);	// diffuse
+	bool generateDirectCoeffsGS(Sampler& sampler, int numBands );	// glossy surface self-transfer
 
 	void bindBuffer();
 
