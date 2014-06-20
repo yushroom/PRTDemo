@@ -71,25 +71,14 @@ Object::Object(const char* path)
 	grid = new Grid(this);
 }
 
-bool Object::doesRayHitObject(Ray& ray) const
+int Object::doesRayHitObject(Ray& ray) const
 {
 	//cout << "Object::doesRayHitObject" << endl;
 	if (!aabb.intersect(ray))
-		return false;
+		return -1;
 
 	// test each triangle individually
 	return grid->intersect(ray);
-	//for (unsigned int i = 0; i < indices.size(); i+=3)
-	//{
-	//	vec3 v[3];
-	//	v[0] = vertices[indices[i  ]].position;
-	//	v[1] = vertices[indices[i+1]].position;
-	//	v[2] = vertices[indices[i+3]].position;
-
-	//	if (ray.intersectsTriangle(v[0], v[1], v[2]))
-	//		return true;
-	//}
-	//return false;
 }
 
 

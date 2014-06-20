@@ -1,7 +1,8 @@
 #include "Light.h"
-#include <opencv2\opencv.hpp>
+//#include <opencv2\opencv.hpp>
+#include <FreeImage.h>
 #include "SHRotate.h"
-using cv::Mat;
+//using cv::Mat;
 
 // directional light
 Light* Light::directLight(Sampler& sampler, int numBands, float lightIntensity)							
@@ -63,6 +64,8 @@ Light* Light::lightFromImage(const char* imagePath, Sampler& sampler, int numBan
 		light->coeffs->g[i] = 0.0f;
 		light->coeffs->b[i] = 0.0f;
 	}
+
+
 	for (int i = 0; i < sampler.size(); i++) {
 		vec3& direction = sampler.samples[i].direction;
 		for (int j = 0; j < numBands*numBands; j++) {
@@ -98,26 +101,31 @@ void Light::rotateSHCoefficients(float theta, float phi)
 
 bool Image::loadFromFile(const char* filename)
 {
-	//Mat mat = imread("spheremap.bmp");
-	Mat mat = cv::imread(filename);
-	if (mat.empty()) {
-		printf("[Error] load image %s failed.", filename);
+	FREE_IMAGE_FORMAT fifmt = FreeImage_GetFileType(filename, 0);
+	FIBITMAP* env = FreeImage_Load(fifmt, filename);
+	if (!env) {
+		printf("[Error] load image %s failed.\n", filename);
 		return false;
 	}
-	cv::namedWindow("image", CV_WINDOW_AUTOSIZE);
-	cv::imshow("image", mat);
+	FREE_IMAGE_TYPE image_type = FreeImage_GetImageType(env);
 
-	height = mat.rows;
-	width = mat.cols;
+	//env = FreeImage_ConvertTo24Bits(env);
+	//env = FreeImage_ConvertToFloat(env);
+	FIRGBF* pixels = (FIRGBF*)FreeImage_GetBits(env);
+	height =  FreeImage_GetWidth(env);
+	width =  FreeImage_GetHeight(env);
+
 	pixel[0] = new float[height * width];
 	pixel[1] = new float[height * width];
 	pixel[2] = new float[height * width];
+
+	float factor = 0.6f;
 	for (int i = 0; i < height; i++) {
 		for (int j = 0; j < width; j++) {
-			cv::Vec3b intensity = mat.at<cv::Vec3b>(i, j);
-			pixel[0][i*width + j] = intensity.val[2] / 255.0f;
-			pixel[1][i*width + j] = intensity.val[1] / 255.0f;
-			pixel[2][i*width + j] = intensity.val[0] / 255.0f;
+			int idx = i*width + j;
+			pixel[0][idx] = pixels[idx].red * factor;
+			pixel[1][idx] = pixels[idx].green * factor;
+			pixel[2][idx] = pixels[idx].blue * factor;
 		}
 	}
 	return true;

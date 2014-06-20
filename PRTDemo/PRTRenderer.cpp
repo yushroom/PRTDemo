@@ -52,7 +52,7 @@ void PRTRenderer::initGLFW()
     glfwSetScrollCallback(window, scroll_callback);
 
     glfwMakeContextCurrent(window);
-    glfwSwapInterval(1);
+    glfwSwapInterval(0);
 
     //glfwGetFramebufferSize(window, &width, &height);
     framebuffer_size_callback(window, width, height);
@@ -103,6 +103,7 @@ void PRTRenderer::compileShader(const char* vertFileName, const char* fragFileNa
 	prog.use();
 }
 
+
 void PRTRenderer::changeMatrics()
 {
 	this->modelMatrix = glm::rotate(this->modelMatrix, glm::radians(-30.f), vec3(0.0f,1.0f,0.0f));
@@ -147,10 +148,20 @@ void PRTRenderer::renderModel(Object* model)
 }
 
 
+void PRTRenderer::bindAttributes(Scene& scene)
+{
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, scene.VB);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)0);	// position
+}
+
+
 void PRTRenderer::precomputeColor(Scene& scene, Light& light)
 {
 	//Calculate the lit color of each vertex
 	int numObjects = scene.object.size();
+
+	bindAttributes(scene);
 
 	for(int i=0; i < numObjects; ++i)
 	{
@@ -195,6 +206,46 @@ void PRTRenderer::precomputeColor(Scene& scene, Light& light)
 				currentVertex.litColor = brightness*currentVertex.diffuseMaterial;
 			}
 		}
+		
+		else {
+			for(int j=0; j<numVertices; ++j)
+			{
+				Vertex & currentVertex=currentObject->vertices[j];
+				vec3 brightness(0.f, 0.f, 0.f);
+				
+				//vec3* pShowedCoeffs; 
+				//if(lightingType == LIGHTING_TYPE_SH_SHADOWED_BOUNCE_1)
+				//{
+				//	pShowedCoeffs =  currentVertex.shadowedCoeffs[]
+				//}
+				int idx = lightingType - LIGHTING_TYPE_SH_SHADOWED_BOUNCE_1;
+				if (idx > 2) idx = 2;
+				else if (idx < 0 ) idx =0;
+
+				for(int k = 0; k < light.numFunctions; ++k) {
+					//brightness += light.rotatedLightCoeffs[k]*currentVertex.shadowedCoeffs[k];
+					//brightness += light.coeffs[k]*currentVertex.shadowedCoeffs[k];
+					brightness.r += light.rotatedCoeffs->r[k] * currentVertex.shadowedCoeffsDS[idx][k].r;
+					brightness.g += light.rotatedCoeffs->g[k] * currentVertex.shadowedCoeffsDS[idx][k].g;
+					brightness.b += light.rotatedCoeffs->b[k] * currentVertex.shadowedCoeffsDS[idx][k].b;
+				}
+
+				currentVertex.litColor = brightness*currentVertex.diffuseMaterial;
+			}
+		}
+	}
+}
+
+void PRTRenderer::getFPS()
+{
+	static double lastTime;
+	static int nbFrames = 0;
+	double currentTime = glfwGetTime();
+	nbFrames++;
+	if (currentTime - lastTime >= 1.0) {
+		cout << "FPS: " << nbFrames << endl;
+		nbFrames = 0;
+		lastTime = currentTime;
 	}
 }
 
@@ -202,6 +253,7 @@ void PRTRenderer::renderSceneWithLight(Scene& scene, Light& light)
 {
 	while (!glfwWindowShouldClose(window)) {
 
+		getFPS();
 		if (bAnim) changeMatrics();
 		light.rotateSHCoefficients(beta, alpha);
 		precomputeColor(scene, light);
@@ -215,12 +267,11 @@ void PRTRenderer::renderSceneWithLight(Scene& scene, Light& light)
 		//glEnableVertexAttribArray(2);
 
 		glBindBuffer(GL_ARRAY_BUFFER, scene.VB);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)0);	// position
+		//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)0);	// position
 		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)(sizeof(glm::vec3)+sizeof(glm::vec3)));// color
 		//glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)(sizeof(glm::vec3)+sizeof(glm::vec2)));
 
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, scene.IB);
-
 		glDrawElements(GL_TRIANGLES, scene.numIndices, GL_UNSIGNED_INT, 0);
 
 		glDisableVertexAttribArray(0);
@@ -290,14 +341,20 @@ void PRTRenderer::key_callback(GLFWwindow* window, int key, int scancode, int ac
 		}
 		break;
 	case GLFW_KEY_1:
-		//lightingType = LIGHTING_TYPE_GL;
-		break;
-
-	case GLFW_KEY_2:
 		lightingType = LIGHTING_TYPE_SH_UNSHADOWED;
 		break;
-	case GLFW_KEY_3:
+	case GLFW_KEY_2:
 		lightingType = LIGHTING_TYPE_SH_SHADOWED;
+		break;
+	case GLFW_KEY_3:
+		lightingType = LIGHTING_TYPE_SH_SHADOWED_BOUNCE_1;
+		break;
+	case GLFW_KEY_4:
+		lightingType = LIGHTING_TYPE_SH_SHADOWED_BOUNCE_2;
+		break;
+	case GLFW_KEY_5:
+		lightingType = LIGHTING_TYPE_SH_SHADOWED_BOUNCE_3;
+		break;
 	}
 }
 

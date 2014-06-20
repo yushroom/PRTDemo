@@ -1,66 +1,52 @@
 #ifndef _GRID_H_
 #define _GRID_H_
+#include <climits>
 #include "global.h"
 #include "Ray.h"
 #include "AABB.h"
-
-typedef AABB BBox;
-typedef glm::vec3 Point;
-typedef glm::vec3 Vector;
+//#include "Object.h"
 
 class Object;
 
 int clamp(int val, int low, int high);
 
-// Voxel Declarations
-struct Voxel {
-    // Voxel Public Methods
-    uint32_t size() const { return primitives.size(); }
-    Voxel() { }
-    Voxel(Reference<Primitive> op) {
-        allCanIntersect = false;
-        primitives.push_back(op);
-    }
-    void AddPrimitive(Reference<Primitive> prim) {
-        primitives.push_back(prim);
-    }
-    bool Intersect(const Ray &ray, Intersection *isect);
-    bool IntersectP(const Ray &ray);
-private:
-    vector<Reference<Primitive> > primitives;
-    bool allCanIntersect;
-};
-
-// GridAccel Declarations
-class GridAccel {
+class Grid
+{
+	struct Cell {
+		// TODO remove model
+		Cell(Object* model) : model(model) {}
+		void insert(uint32_t idx) { triangles.push_back(idx); };
+		int intersect(Ray& ray) const;
+		
+		vector<uint32_t> triangles;	// tris id in model->indices
+		Object* model;
+	};
 public:
-    // GridAccel Public Methods
-    GridAccel(Object* object);
-    BBox WorldBound() const;
-    bool CanIntersect() const { return true; }
-    ~GridAccel();
-    bool Intersect(const Ray &ray, Intersection *isect) const;
-    bool IntersectP(const Ray &ray) const;
-private:
-    // GridAccel Private Methods
-    int posToVoxel(const Point &P, int axis) const {
-        int v = int((P[axis] - bounds.min[axis]) *
-                          invWidth[axis]);
-        return clamp(v, 0, nVoxels[axis]-1);
-    }
-    float voxelToPos(int p, int axis) const {
-        return bounds.min[axis] + p * width[axis];
-    }
-    inline int offset(int x, int y, int z) const {
-        return z*nVoxels[0]*nVoxels[1] + y*nVoxels[0] + x;
-    }
+	Grid(Object* model);
+	~Grid() {
+		// TODO
+	}
+	int intersect(Ray& ray) const;
+	uint32_t nCell[3];	// 
+	vec3 cellSize;		// width of cells
+	int ncell;				// total # of cells
+	AABB bbox;
+	Cell** cells;
+	Object* model;
 
-    // GridAccel Private Data
-    //vector<Reference<Primitive> > primitives;
-    Object* object;
-	int nVoxels[3];
-    BBox bounds;
-    Vector width, invWidth;
-    Voxel **voxels; };
+private:
+	int posToCell(const vec3& p, int axis) const {
+		int v = int((p[axis] - bbox.min[axis]) / cellSize[axis]);
+		return clamp(v, 0, nCell[axis]-1);
+	}
+	float cellToPos(int p, int axis) const {
+		return bbox.min[axis] + p * cellSize[axis];
+	}
+
+	int offset(int x, int y, int z) const {
+		//assert(x < nCell.x && y < nCell.y && z < nCell.z);
+		return z*nCell[0]*nCell[1] + y*nCell[0] + x;
+	}
+};
 
 #endif

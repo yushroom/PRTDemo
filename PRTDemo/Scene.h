@@ -10,30 +10,19 @@ class Scene
 public:
 	bool addModelFromFile(const char* path);
 	bool generateDirectCoeffs(Sampler& sampler, int numBands);	// diffuse
+	bool generateDirectCoeffsDS(Sampler& sampler, int numBands, int bounceTime);
+	bool generateDirectCoeffsDS(Sampler& sampler, int numBands);
 	bool generateDirectCoeffsGS(Sampler& sampler, int numBands );	// glossy surface self-transfer
 
 	void bindBuffer();
 
-//private:
-	bool isRayBlocked(Ray& ray);
+	int isRayBlocked(Ray& ray);
 	vector<Object*> object;
 
 	GLuint VB;
 	GLuint IB;
 	int numIndices;
 
-private:
-	//struct bufferBinder {
-	//	static void bindBuffer(const std::vector<Vertex>& Vertices,
-	//					const std::vector<unsigned int>& Indices);
- //       
- //       static GLuint VB;		//For vertex buffer
- //       static GLuint IB;		//For index buffer
- //       //unsigned int numIndices;
-	//private:
- //       bufferBinder();
- //       ~bufferBinder();
- //   };
 };
 
 #endif //_SCENE_H_

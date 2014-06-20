@@ -7,14 +7,14 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include "AccelerationStructure.h"
+#include "Grid.h"
 //class Grid;
 
 class Object
 {
 public:
 	Object(const char* path);		// load form file
-	bool doesRayHitObject(Ray& ray) const;
+	int doesRayHitObject(Ray& ray) const;
 
 	void render();
 

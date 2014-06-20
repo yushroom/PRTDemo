@@ -1,271 +1,255 @@
 #include "Grid.h"
+#include "Object.h"
 
-int clamp(int val, int low, int high)
+inline int clamp(int val, int low, int high) {
+    if (val < low) return low;
+    else if (val > high) return high;
+    else return val;
+}
+
+Grid::Grid(Object* model) : model(model), cells(NULL)
 {
-	if (val < low) return low;
-	if (val > high) return high;
-	return val;
+	// compute aabb of the scene
+	int totalNumTriangles = model->indices.size() / 3;
+	bbox.expand(model->aabb.max);
+	bbox.expand(model->aabb.min);
+	// create the grid
+	vec3 delta = bbox.max - bbox.min;
+	//cout << "bbox.min = (" << bbox.min.x << ", " << bbox.min.y << ", " << bbox.min.z << ") max = (" << bbox.max.x << ", " << bbox.max.y << ", " << bbox.max.z << ")\n";
+#if 1
+	uint8_t maxAxis = bbox.majorAxis();
+	float invMaxSize = 1.f / delta[maxAxis];
+	assert(invMaxSize > 0);
+	float cubeRoot = 3.f * powf(float(totalNumTriangles), 1.f / 3.f);
+	float cellsPerUnitDist = cubeRoot * invMaxSize;
+	for (uint8_t axis = 0; axis < 3; ++axis) {
+		nCell[axis] = std::floor(delta[axis] * cellsPerUnitDist);
+		nCell[axis] = clamp(nCell[axis], 1, 128);
+	}
+#else
+	float cubeRoot = powf(5 * totalNumTriangles / (delta[0] * delta[1] * delta[2]), 1 / 3.f);
+	cout << "cubeRoot = " << cubeRoot << endl;
+	for (uint8_t i = 0; i < 3; ++i) {
+		nCell[i] = std::floor(delta[i] * cubeRoot);
+		nCell[i] = std::max(uint32_t(1), std::min(nCell[i], uint32_t(128)));
+	}
+#endif
+	cellSize = vec3(delta.x/nCell[0], delta.y/nCell[1], delta.z/nCell[2]);
+	//cout << "nCell    " << nCell[0] << ' ' << nCell[1] << ' ' << nCell[2] << endl; 
+	//cout << "cellSize " << cellSize.x << ' ' << cellSize.x << ' ' << cellSize.x << endl; 
+	// allocate memory
+	ncell = nCell[0] * nCell[1] * nCell[2];
+	//cout << "ncell    " << ncell << endl;
+	cells = new Cell*[ncell];
+	//for (int i = 0; i < ncell; i++)
+	//	cells[i] = new Cell(model);
+	// set all pointers to NULL
+	 memset(cells, 0x0, sizeof(Grid::Cell*) * ncell);
+
+	// insert all the triangles in the cells
+	for (unsigned int i = 0; i < model->indices.size(); i += 3) {
+		int idx1 = model->indices[i];
+		int idx2 = model->indices[i+1];
+		int idx3 = model->indices[i+2];
+		const vec3& v1 = model->vertices[idx1].position;
+		const vec3& v2 = model->vertices[idx2].position;
+		const vec3& v3 = model->vertices[idx3].position;
+		AABB box;
+		box.expand(v1);
+		box.expand(v2);
+		box.expand(v3);
+
+		// convert to cell coordinates
+		int vmin[3], vmax[3];
+		for (int axis = 0; axis < 3; axis++) {
+			vmin[axis] = posToCell(box.min, axis);
+			vmax[axis] = posToCell(box.max, axis);
+		}
+
+		// loop over all the cells the triangle overlaps and insert
+		for (int z = vmin[2]; z <= vmax[2]; ++z) {
+			for (int y = vmin[1]; y <= vmax[1]; ++y) {
+				for (int x = vmin[0]; x <= vmax[0]; ++x) {
+					int o = offset(x, y, z);
+					if (cells[o] == NULL) 
+						cells[o] = new Cell(model);
+					cells[o]->insert(i);
+				}
+			}
+		}
+	}
+
+	int maxn = 0;
+	for (int i = 0; i < ncell; i++)
+		if (cells[i] != NULL && maxn < cells[i]->triangles.size())
+			maxn = cells[i]->triangles.size();
+	cout << "	max # in grid: " << maxn << endl;
 }
 
-// GridAccel Method Definitions
-GridAccel::GridAccel(Object* obj) {
+const float EPSILON2 = 0.0001f;
 
-	object = obj;
+bool intersectTriangle( Ray &r, vec3 &v0, vec3& v1, vec3& v2, float &t, float &u, float &v)
+{
+	static uint32_t ntimes = 0;
+	ntimes++;
+	//cout << ntimes << endl;
+	vec3 edge1 = v1 - v0;
+	vec3 edge2 = v2 - v0;
+	vec3 pvec = glm::cross(r.direction, edge2);
+	float det = glm::dot(edge1, pvec);
+	if (det > -EPSILON2 && det < EPSILON2) return false;
+	float invDet = 1 / det;
+	vec3 tvec = r.source - v0;
+	u = glm::dot(tvec, pvec) * invDet;
+	if (u < 0 || u > 1) return false;
+	vec3 qvec = glm::cross(tvec, edge1);
+	v = glm::dot(r.direction, qvec) * invDet;
+	if (v < 0 || u + v > 1) return false;
+	t = glm::dot(edge2, qvec) * invDet;
+	return true;
+} 
 
-    // Compute bounds and choose grid resolution
-    for (uint32_t i = 0; i < primitives.size(); ++i)
-        bounds = Union(bounds, primitives[i]->WorldBound());
-    Vector delta = bounds.max - bounds.min;
+int Grid::Cell::intersect(Ray&ray) const
+{
+	//cout << "Grid::Cell::intersect" << endl;
+	float uhit, vhit;
+	for (uint32_t i = 0; i < triangles.size(); ++i) {
+		//cout << "triangles.size() = " << triangles.size() << endl;
+		int index = triangles[i];
+		uint32_t idx0 = model->indices[index];
+		uint32_t idx1 = model->indices[index + 1];
+		uint32_t idx2 = model->indices[index + 2];
 
-    // Find _voxelsPerUnitDist_ for grid
-    int maxAxis = bounds.majorAxis();
-    float invMaxWidth = 1.f / delta[maxAxis];
-    assert(invMaxWidth > 0.f);
-    float cubeRoot = 3.f * powf(float(primitives.size()), 1.f/3.f);
-    float voxelsPerUnitDist = cubeRoot * invMaxWidth;
-    for (int axis = 0; axis < 3; ++axis) {
-        nVoxels[axis] = Round2Int(delta[axis] * voxelsPerUnitDist);
-        nVoxels[axis] = Clamp(nVoxels[axis], 1, 64);
-    }
+		//assert(idx0 >=0 && idx0 < model->vertices.size() && idx1);
+		vec3& v0 = model->vertices[idx0].position;
+		vec3& v1 = model->vertices[idx1].position;
+		vec3& v2 = model->vertices[idx2].position;
 
-
-    // Compute voxel widths and allocate voxels
-    for (int axis = 0; axis < 3; ++axis) {
-        width[axis] = delta[axis] / nVoxels[axis];
-        invWidth[axis] = (width[axis] == 0.f) ? 0.f : 1.f / width[axis];
-    }
-    int nv = nVoxels[0] * nVoxels[1] * nVoxels[2];
-	voxels = new Voxel*[nv];
-    memset(voxels, 0, nv * sizeof(Voxel *));
-
-    // Add primitives to grid voxels
-    for (uint32_t i = 0; i < primitives.size(); ++i) {
-        // Find voxel extent of primitive
-        BBox pb = primitives[i]->WorldBound();
-        int vmin[3], vmax[3];
-        for (int axis = 0; axis < 3; ++axis) {
-            vmin[axis] = posToVoxel(pb.min, axis);
-            vmax[axis] = posToVoxel(pb.max, axis);
-        }
-
-        // Add primitive to overlapping voxels
-        for (int z = vmin[2]; z <= vmax[2]; ++z)
-            for (int y = vmin[1]; y <= vmax[1]; ++y)
-                for (int x = vmin[0]; x <= vmax[0]; ++x) {
-                    int o = offset(x, y, z);
-                    if (!voxels[o]) {
-                        // Allocate new voxel and store primitive in it
-						voxels[o] = new Voxel;
-                        *voxels[o] = Voxel(primitives[i]);
-                    }
-                    else {
-                        // Add primitive to already-allocated voxel
-                        voxels[o]->AddPrimitive(primitives[i]);
-                    }
-                }
-    }
+		if (ray.intersectsTriangle(v0, v1, v2)) {
+			return index;
+		}
+	}
+	return -1;
 }
 
+int Grid::intersect(Ray& ray) const 
+{
+	//cout << "Grid::intersect";
+	float rayT;
+	if (bbox.isPointInside(ray(ray.tmin)))
+		rayT = ray.tmin;
+	else if (!bbox.intersect(ray, &rayT))
+		return false;
+	vec3 gridIntersect = ray(rayT);
 
-BBox GridAccel::WorldBound() const {
-    return bounds;
-}
+	Ray r(ray);
 
+#if 1
+	// set up 3D DDA for ray
+	float nextCrossingT[3], deltaT[3];
+	int step[3], out[3], pos[3];
+	for (int axis = 0; axis < 3; axis++) {
+		// compute current cell for axis
+		pos[axis] = posToCell(gridIntersect, axis);
+		if (ray.direction[axis] >= 0) {
+			nextCrossingT[axis] = rayT + (cellToPos(pos[axis]+1, axis) 
+				- gridIntersect[axis]) / ray.direction[axis];
+			deltaT[axis] = cellSize[axis] / ray.direction[axis];
+			step[axis] = 1;
+			out[axis] = nCell[axis];
+		}
+		else {
+			// handle ray with negative direction for cell stepping
+			nextCrossingT[axis] = rayT + (cellToPos(pos[axis], axis) 
+				- gridIntersect[axis]) / ray.direction[axis];
+			deltaT[axis] = -cellSize[axis] / ray.direction[axis];
+			step[axis] = -1;
+			out[axis] = -1;
+		}
+	}
 
-GridAccel::~GridAccel() {
-    for (int i = 0; i < nVoxels[0]*nVoxels[1]*nVoxels[2]; ++i)
-        if (voxels[i]) voxels[i]->~Voxel();
-}
+	// walk ray through cell grid
+	bool hitsomething = false;
+	while (true) {
+		// check for intersection in current cell and advance to next
+		Cell* cell = cells[offset(pos[0], pos[1], pos[2])];
+		//if (cell != NULL)		// 2 minutes
+		//	//hitsomethin |= cell->insert(ray, isect);
+		//	hitsomething |= cell->intersect(ray);
+		if (cell != NULL) {		// 57 s
+			//hitsomethin |= cell->insert(ray, isect);
+			int index = cell->intersect(ray);
+			if (index > -1)
+				return index;
+		}
 
+		// advance to next voxel
+		// find _stepaxis_ for stepping to next voxel
+		int bits = ((nextCrossingT[0] < nextCrossingT[1]) << 2) +
+			((nextCrossingT[0] < nextCrossingT[2]) << 1) +
+			((nextCrossingT[1] < nextCrossingT[2]));
+		const int cmptoaxis[8] = { 2, 1, 2, 1, 2, 2, 0, 0 };
+		int stepaxis = cmptoaxis[bits];
+		if (ray.tmax < nextCrossingT[stepaxis])
+			break;
+		pos[stepaxis] += step[stepaxis];
+		if (pos[stepaxis] == out[stepaxis])
+			break;
+		nextCrossingT[stepaxis] += deltaT[stepaxis];
+	}
+	return hitsomething;
 
-bool GridAccel::Intersect(const Ray &ray, Intersection *isect) const {
+#else
 
-    // Check ray against overall grid bounds
-    float rayT;
-    if (bounds.Inside(ray(ray.tmin)))
-        rayT = ray.tmin;
-    else if (!bounds.IntersectP(ray, &rayT)) {
-        return false;
-    }
-    Point gridIntersect = ray(rayT);
+	// initialization step
+	glm::ivec3 exit, step, cell;
+	vec3 deltaT, nextCrossingT;
+	for (uint8_t i = 0; i < 3; ++i) {
+		// convert ray starting point to cell coordinates
+		float rayOrigCell = ((r.source[i] + r.direction[i] * r.tmin) -  bbox.min[i]);
+		cell[i] = clamp(std::floor(rayOrigCell / cellSize[i]), 0, nCell[i] - 1);
+		if (r.direction[i] < 0) {
+			deltaT[i] = -cellSize[i] / r.direction[i];
+			nextCrossingT[i] = r.tmin + (cell[i] * cellSize[i] - rayOrigCell) / r.direction[i];
+			exit[i] = -1;
+			step[i] = -1;
+		}
+		else {
+			deltaT[i] = cellSize[i] / r.direction[i];
+			nextCrossingT[i] = r.tmin + ((cell[i] + 1)  * cellSize[i] - rayOrigCell) / r.direction[i];
+			exit[i] = nCell[i];
+			step[i] = 1;
+		}
+	}
 
-    // Set up 3D DDA for ray
-    float NextCrossingT[3], DeltaT[3];
-    int Step[3], Out[3], Pos[3];
-    for (int axis = 0; axis < 3; ++axis) {
-        // Compute current voxel for axis
-        Pos[axis] = posToVoxel(gridIntersect, axis);
-        if (ray.d[axis] >= 0) {
-            // Handle ray with positive direction for voxel stepping
-            NextCrossingT[axis] = rayT +
-                (voxelToPos(Pos[axis]+1, axis) - gridIntersect[axis]) / ray.d[axis];
-            DeltaT[axis] = width[axis] / ray.d[axis];
-            Step[axis] = 1;
-            Out[axis] = nVoxels[axis];
-        }
-        else {
-            // Handle ray with negative direction for voxel stepping
-            NextCrossingT[axis] = rayT +
-                (voxelToPos(Pos[axis], axis) - gridIntersect[axis]) / ray.d[axis];
-            DeltaT[axis] = -width[axis] / ray.d[axis];
-            Step[axis] = -1;
-            Out[axis] = -1;
-        }
-    }
+	// walk through each cell of the grid and test for an intersection if 
+	// current cell contains geometry
+	// const Object *hitObject = NULL;
+	while (1) {
+		//uint32_t o = cell[2] * nCell[0] * nCell[1] + cell[1] * nCell[0] + cell[0];
+		int o = offset(cell[0], cell[1], cell[2]);
+		assert(o>=0 && o<ncell);
+		if (cells[o] != NULL) {
+			if (cells[o]->intersect(ray))
+				return true;
+			//if (hitObject != NULL) { ray.color = cells[o]->color; }
+		}
 
-    // Walk ray through voxel grid
-    bool hitSomething = false;
-    for (;;) {
-        // Check for intersection in current voxel and advance to next
-        Voxel *voxel = voxels[offset(Pos[0], Pos[1], Pos[2])];
+		// to next cell
+		uint8_t k = 
+			((nextCrossingT[0] < nextCrossingT[1]) << 2) +
+			((nextCrossingT[0] < nextCrossingT[2]) << 1) +
+			((nextCrossingT[1] < nextCrossingT[2]));
+		static const uint8_t map[8] = {2, 1, 2, 1, 2, 2, 0, 0};
+		assert(k<8);
+		uint8_t axis = map[k];
 
-        if (voxel != NULL)
-            hitSomething |= voxel->Intersect(ray, isect);
-
-        // Advance to next voxel
-
-        // Find _stepAxis_ for stepping to next voxel
-        int bits = ((NextCrossingT[0] < NextCrossingT[1]) << 2) +
-                   ((NextCrossingT[0] < NextCrossingT[2]) << 1) +
-                   ((NextCrossingT[1] < NextCrossingT[2]));
-        const int cmpToAxis[8] = { 2, 1, 2, 1, 2, 2, 0, 0 };
-        int stepAxis = cmpToAxis[bits];
-        if (ray.tmax < NextCrossingT[stepAxis])
-            break;
-        Pos[stepAxis] += Step[stepAxis];
-        if (Pos[stepAxis] == Out[stepAxis])
-            break;
-        NextCrossingT[stepAxis] += DeltaT[stepAxis];
-    }
-    return hitSomething;
-}
-
-
-bool Voxel::intersect(const Ray &ray, Intersection *isect) {
-    // Refine primitives in voxel if needed
-    if (!allCanIntersect) {
-        for (uint32_t i = 0; i < primitives.size(); ++i) {
-            Reference<Primitive> &prim = primitives[i];
-            // Refine primitive _prim_ if it's not intersectable
-            if (!prim->CanIntersect()) {
-                vector<Reference<Primitive> > p;
-                prim->FullyRefine(p);
-                assert(p.size() > 0);
-                if (p.size() == 1)
-                    primitives[i] = p[0];
-                else
-                    primitives[i] = new GridAccel(p, false);
-            }
-        }
-        allCanIntersect = true;
-        lock.DowngradeToRead();
-    }
-
-    // Loop over primitives in voxel and find intersections
-    bool hitSomething = false;
-    for (uint32_t i = 0; i < primitives.size(); ++i) {
-        Reference<Primitive> &prim = primitives[i];
-        PBRT_GRID_RAY_PRIMITIVE_INTERSECTION_TEST(const_cast<Primitive *>(prim.GetPtr()));
-        if (prim->Intersect(ray, isect))
-        {
-        PBRT_GRID_RAY_PRIMITIVE_HIT(const_cast<Primitive *>(prim.GetPtr()));
-            hitSomething = true;
-        }
-    }
-    return hitSomething;
-}
-
-
-bool GridAccel::intersectP(const Ray &ray) const {
-
-    // Check ray against overall grid bounds
-    float rayT;
-    if (bounds.Inside(ray(ray.tmin)))
-        rayT = ray.tmin;
-    else if (!bounds.IntersectP(ray, &rayT))
-    {
-        PBRT_GRID_RAY_MISSED_BOUNDS();
-        return false;
-    }
-    Point gridIntersect = ray(rayT);
-
-    // Set up 3D DDA for ray
-    float NextCrossingT[3], DeltaT[3];
-    int Step[3], Out[3], Pos[3];
-    for (int axis = 0; axis < 3; ++axis) {
-        // Compute current voxel for axis
-        Pos[axis] = posToVoxel(gridIntersect, axis);
-        if (ray.d[axis] >= 0) {
-            // Handle ray with positive direction for voxel stepping
-            NextCrossingT[axis] = rayT +
-                (voxelToPos(Pos[axis]+1, axis) - gridIntersect[axis]) / ray.d[axis];
-            DeltaT[axis] = width[axis] / ray.d[axis];
-            Step[axis] = 1;
-            Out[axis] = nVoxels[axis];
-        }
-        else {
-            // Handle ray with negative direction for voxel stepping
-            NextCrossingT[axis] = rayT +
-                (voxelToPos(Pos[axis], axis) - gridIntersect[axis]) / ray.d[axis];
-            DeltaT[axis] = -width[axis] / ray.d[axis];
-            Step[axis] = -1;
-            Out[axis] = -1;
-        }
-    }
-
-    // Walk grid for shadow ray
-    for (;;) {
-        int o = offset(Pos[0], Pos[1], Pos[2]);
-        Voxel *voxel = voxels[o];
-        PBRT_GRID_RAY_TRAVERSED_VOXEL(Pos, voxel ? voxel->size() : 0);
-        if (voxel && voxel->IntersectP(ray))
-            return true;
-        // Advance to next voxel
-
-        // Find _stepAxis_ for stepping to next voxel
-        int bits = ((NextCrossingT[0] < NextCrossingT[1]) << 2) +
-                   ((NextCrossingT[0] < NextCrossingT[2]) << 1) +
-                   ((NextCrossingT[1] < NextCrossingT[2]));
-        const int cmpToAxis[8] = { 2, 1, 2, 1, 2, 2, 0, 0 };
-        int stepAxis = cmpToAxis[bits];
-        if (ray.tmax < NextCrossingT[stepAxis])
-            break;
-        Pos[stepAxis] += Step[stepAxis];
-        if (Pos[stepAxis] == Out[stepAxis])
-            break;
-        NextCrossingT[stepAxis] += DeltaT[stepAxis];
-    }
-    return false;
-}
-
-
-bool Voxel::intersectP(const Ray &ray, RWMutexLock &lock) {
-    // Refine primitives in voxel if needed
-    if (!allCanIntersect) {
-        lock.UpgradeToWrite();
-        for (uint32_t i = 0; i < primitives.size(); ++i) {
-            Reference<Primitive> &prim = primitives[i];
-            // Refine primitive _prim_ if it's not intersectable
-            if (!prim->CanIntersect()) {
-                vector<Reference<Primitive> > p;
-                prim->FullyRefine(p);
-                assert(p.size() > 0);
-                if (p.size() == 1)
-                    primitives[i] = p[0];
-                else
-                    primitives[i] = new GridAccel(p, false);
-            }
-        }
-        allCanIntersect = true;
-        lock.DowngradeToRead();
-    }
-    for (uint32_t i = 0; i < primitives.size(); ++i) {
-        Reference<Primitive> &prim = primitives[i];
-        PBRT_GRID_RAY_PRIMITIVE_INTERSECTIONP_TEST(const_cast<Primitive *>(prim.GetPtr()));
-        if (prim->IntersectP(ray)) {
-            PBRT_GRID_RAY_PRIMITIVE_HIT(const_cast<Primitive *>(prim.GetPtr()));
-            return true;
-        }
-    }
-    return false;
+		if (ray.tmax < nextCrossingT[axis]) break;
+		cell[axis] += step[axis];
+		if (cell[axis] == exit[axis]) break;
+		nextCrossingT[axis] += deltaT[axis];
+	}
+	return false;
+	//return hitObject;
+#endif
 }

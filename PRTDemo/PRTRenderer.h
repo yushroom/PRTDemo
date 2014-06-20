@@ -30,6 +30,9 @@ public:
 	void renderModel(Object* model);
 	void precomputeColor(Scene& scene, Light& light);
 	void renderSceneWithLight(Scene& scene, Light& light);
+	void bindAttributes(Scene& scene);
+	void getFPS();
+
 
 	ShaderProgram prog;
 
