@@ -12,5 +12,7 @@ void GetX90DegreeRotationMatrix(int band, float * entries);
 
 //Apply a matrix to a vector of coefficients
 void ApplyMatrix(int size, float * matrix, bool transpose, float * inVector, float * outVector);
+
+
 #endif
 

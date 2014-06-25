@@ -84,7 +84,7 @@ void GetZRotationMatrix(int band, float * entries, float angle)
 	int size=2*band+1;
 
 	//Convert angle to radians
-	angle  *= PI/180.0;
+	angle  *= PI/180.f;
 
 	//Entry index
 	int currentEntry=0;
@@ -184,7 +184,7 @@ void GetX90DegreeRotationMatrix(int band, float * entries)
 		entries[11]= 0.0;
 		entries[12]=-0.5;
 		entries[13]= 0.0;
-		entries[14]=-sqrt(3.0)/2;
+		entries[14]=-sqrt(3.f)/2;
 		entries[15]=-1.0;
 		entries[16]= 0.0;
 		entries[17]= 0.0;
@@ -192,7 +192,7 @@ void GetX90DegreeRotationMatrix(int band, float * entries)
 		entries[19]= 0.0;
 		entries[20]= 0.0;
 		entries[21]= 0.0;
-		entries[22]=-sqrt(3.0)/2;
+		entries[22]=-sqrt(3.f)/2;
 		entries[23]= 0.0;
 		entries[24]= 0.5;
 	}
@@ -203,24 +203,24 @@ void GetX90DegreeRotationMatrix(int band, float * entries)
 		for(int i=0; i<49; ++i)
 			entries[i]=0.0;
 
-		entries[ 3]=-sqrt(0.625);
-		entries[ 5]= sqrt(0.375);
+		entries[ 3]=-sqrt(0.625f);
+		entries[ 5]= sqrt(0.375f);
 		
 		entries[ 8]=-1.0;
 		
-		entries[17]=-sqrt(0.375);
-		entries[19]=-sqrt(0.625);
+		entries[17]=-sqrt(0.375f);
+		entries[19]=-sqrt(0.625f);
 		
-		entries[21]= sqrt(0.625);
-		entries[23]= sqrt(0.375);
+		entries[21]= sqrt(0.625f);
+		entries[23]= sqrt(0.375f);
 		
 		entries[32]=-0.25;
-		entries[34]=-sqrt(15.0)/4;
+		entries[34]=-sqrt(15.f)/4;
 		
-		entries[35]=-sqrt(0.375);
-		entries[37]= sqrt(0.625);
+		entries[35]=-sqrt(0.375f);
+		entries[37]= sqrt(0.625f);
 
-		entries[46]=-sqrt(15.0)/4;
+		entries[46]=-sqrt(15.f)/4;
 		entries[48]= 0.25;
 	}
 

@@ -8,36 +8,61 @@ bool Scene::addModelFromFile(const char* path)
 	return true;
 }
 
-bool Scene::generateDirectCoeffs(Sampler& sampler, int numBands)
+
+bool Scene::generateCoeffs(Sampler& sampler, int numBands)
 {
 	const int numFunctions = numBands*numBands;
 	const int numSamples = sampler.size();
 
+	// init
 	for (unsigned int objIdx = 0; objIdx < object.size(); objIdx++)
 	{
 		const int numVertices = object[objIdx]->vertices.size();
 		for (int i = 0; i < numVertices; i++)
 		{
 			Vertex& currentVertex = object[objIdx]->vertices[i];
-			if (NULL == currentVertex.isBlocked)
-				currentVertex.isBlocked = new bool[sampler.size()];
-			if (NULL == currentVertex.blockIdx)
-				currentVertex.blockIdx = new int[sampler.size()];
-			if (NULL == currentVertex.unshadowedCoeffs)
-				currentVertex.unshadowedCoeffs = new vec3[numFunctions];
-			if (NULL == currentVertex.shadowedCoeffs)
-				currentVertex.shadowedCoeffs = new vec3[numFunctions];
-			if (NULL == currentVertex.unshadowedCoeffs || NULL == currentVertex.shadowedCoeffs) {
+			currentVertex.isBlocked			= new bool[sampler.size()];
+			currentVertex.blockIdx			= new int[sampler.size()];
+			currentVertex.unshadowedCoeffs	= new vec3[numFunctions];
+			for (int i = 0; i < 4; i++)
+				currentVertex.shadowedCoeffs[i] = new vec3[numFunctions];
+			if (NULL == currentVertex.unshadowedCoeffs || NULL == currentVertex.shadowedCoeffs[3] ) {
 				cout << "[ERROR] Unable to create space for vertex SH coefficients" << endl;
 				exit(1);
 			}
+
+			for (int j = 0; j < numFunctions; j++) {	// for each SH basis function
+				for (int k = 0; k < 3; k++) {			// for each channel
+					currentVertex.unshadowedCoeffs[j][k] = 0.f;
+					for (int m = 0; m < 4; m++)			// for each bounce time
+						currentVertex.shadowedCoeffs[m][j][k] = 0.f;
+				}
+			}
+
 		}
 	}
 
+	cout << "        1/4: unshadowed...\n          ";
+	generateCoeffsUnshadowedAndShadowed(sampler, numBands);
+	for (int i = 1; i < 4; i++) {
+		cout << "\n        " << i+1 << "/4: shadowed, bounce time = " << i << "\n          ";
+		generateCoeffsDS(sampler, numBands, i);
+	}
+	return true;
+}
+
+bool Scene::generateCoeffsUnshadowedAndShadowed(Sampler& sampler, int numBands)
+{
+	const int numFunctions = numBands*numBands;
+	const int numSamples = sampler.size();
+
+	// for each mesh
 	for (unsigned int objIdx = 0; objIdx < object.size(); objIdx++)
 	{
 		const int numVertices = object[objIdx]->vertices.size();
 		float intervel = 0;
+
+		// for each vertex
 		for (int i = 0; i < numVertices; i++)
 		{
 			if (i == intervel) {
@@ -46,19 +71,14 @@ bool Scene::generateDirectCoeffs(Sampler& sampler, int numBands)
 			}
 			Vertex& currentVertex = object[objIdx]->vertices[i];
 
-			for (int j = 0; j < numFunctions; j++) {
-				for (int k = 0; k < 3; k++) {
-					currentVertex.unshadowedCoeffs[j][k] = 0.f;
-					currentVertex.shadowedCoeffs[j][k] = 0.f;
-				}
-			}
-
-			for (int j = 0; j < sampler.size(); j ++)
+			// for each sample
+			for (unsigned j = 0; j < sampler.size(); j ++)
 			{
 				float cosineTerm = glm::dot(sampler[j].direction, currentVertex.normal);
 
 				if (cosineTerm > 0.f) 
 				{
+					// start raytracer
 					Ray ray(currentVertex.position + 2*EPSILON*currentVertex.normal, sampler[j].direction);
 					int index = isRayBlocked(ray);
 					//bool rayBlocked = false;
@@ -75,7 +95,7 @@ bool Scene::generateDirectCoeffs(Sampler& sampler, int numBands)
 						float contribution = cosineTerm * sampler[j].shValues[k];
 						currentVertex.unshadowedCoeffs[k] += contribution;
 						if (index == -1) {
-							currentVertex.shadowedCoeffs[k] += contribution;
+							currentVertex.shadowedCoeffs[0][k] += contribution;
 						}
 					}	
 				} else {
@@ -86,45 +106,42 @@ bool Scene::generateDirectCoeffs(Sampler& sampler, int numBands)
 			// Rescale the coefficients
 			float scale = 4*PI/numSamples;
 			for (int j = 0; j < numFunctions; j++) {
-				currentVertex.unshadowedCoeffs[j] *= scale;
-				currentVertex.shadowedCoeffs[j]   *= scale;
+				currentVertex.unshadowedCoeffs[j]  *= scale;
+				currentVertex.shadowedCoeffs[0][j] *= scale;
 			}
 		}
 	}
 	return true;
 }
 
-bool Scene::generateDirectCoeffsDS(Sampler& sampler, int numBands, int bounceTime)
+bool Scene::generateCoeffsDS(Sampler& sampler, int numBands, int bounceTime)
 {
 	assert(bounceTime >= 1 && bounceTime <=3);
-	const int numFunctions = numBands*numBands;
-	const int numSamples = sampler.size();
+	const unsigned numFunctions = numBands*numBands;
+	const unsigned numSamples = sampler.size();
 	
 	for (unsigned int objIdx = 0; objIdx < object.size(); objIdx++)
 	{
-		const int numVertices = object[objIdx]->vertices.size();
+		const unsigned numVertices = object[objIdx]->vertices.size();
 		float intervel = 0;
 		
 		for (unsigned int i = 0; i < numVertices; i++)
 		{
 			Vertex& v = object[objIdx]->vertices[i];
 			for (unsigned int j = 0; j < numFunctions; j++) {
-				if (bounceTime ==1)
-					v.shadowedCoeffsDS[bounceTime-1][j] = v.shadowedCoeffs[j];
-				else
-					v.shadowedCoeffsDS[bounceTime-1][j] = v.shadowedCoeffsDS[bounceTime-2][j];
+				v.shadowedCoeffs[bounceTime][j] = v.shadowedCoeffs[bounceTime-1][j];
 			}
 		}
 
-		for (int i = 0; i < numVertices; i++)
+		for (unsigned i = 0; i < numVertices; i++)
 		{
 			if (i == intervel) {
-				cout <<  i*100/numVertices << "% ";
+				cout << i*100/numVertices << "% ";
 				intervel += numVertices/10;
 			}
 			Vertex& currentVertex = object[objIdx]->vertices[i];
 
-			for (int j = 0; j < sampler.size(); j ++)
+			for (unsigned j = 0; j < sampler.size(); j ++)
 			{
 				if (currentVertex.isBlocked[j]) {
 					int index = currentVertex.blockIdx[j];
@@ -139,17 +156,10 @@ bool Scene::generateDirectCoeffsDS(Sampler& sampler, int numBands, int bounceTim
 					float cosineTerm0 = -glm::dot(sampler[j].direction, v0.normal);
 					float cosineTerm1 = -glm::dot(sampler[j].direction, v1.normal);
 					float cosineTerm2 = -glm::dot(sampler[j].direction, v2.normal);
-					for (int  k = 0; k < numFunctions; k++) {
-						if (bounceTime == 1) {
-							v0.shadowedCoeffsDS[bounceTime-1][k] += fScale * currentVertex.shadowedCoeffs[k] * cosineTerm0;
-							v1.shadowedCoeffsDS[bounceTime-1][k] += fScale * currentVertex.shadowedCoeffs[k] * cosineTerm1;
-							v2.shadowedCoeffsDS[bounceTime-1][k] += fScale * currentVertex.shadowedCoeffs[k] * cosineTerm2;
-						}
-						else {
-							v0.shadowedCoeffsDS[bounceTime-1][k] += fScale * currentVertex.shadowedCoeffsDS[bounceTime-2][k] * cosineTerm0;
-							v1.shadowedCoeffsDS[bounceTime-1][k] += fScale * currentVertex.shadowedCoeffsDS[bounceTime-2][k] * cosineTerm1;
-							v2.shadowedCoeffsDS[bounceTime-1][k] += fScale * currentVertex.shadowedCoeffsDS[bounceTime-2][k] * cosineTerm2;
-						}
+					for (unsigned  k = 0; k < numFunctions; k++) {
+						v0.shadowedCoeffs[bounceTime][k] += fScale * currentVertex.shadowedCoeffs[bounceTime-1][k] * cosineTerm0;
+						v1.shadowedCoeffs[bounceTime][k] += fScale * currentVertex.shadowedCoeffs[bounceTime-1][k] * cosineTerm1;
+						v2.shadowedCoeffs[bounceTime][k] += fScale * currentVertex.shadowedCoeffs[bounceTime-1][k] * cosineTerm2;
 					}
 				}
 			}
@@ -158,34 +168,9 @@ bool Scene::generateDirectCoeffsDS(Sampler& sampler, int numBands, int bounceTim
 	return true;
 }
 
-bool Scene::generateDirectCoeffsDS(Sampler& sampler, int numBands)
-{
-	const int numFunctions = numBands*numBands;
-	const int numSamples = sampler.size();
-
-	for (unsigned int objIdx = 0; objIdx < object.size(); objIdx++)
-	{
-		const int numVertices = object[objIdx]->vertices.size();
-		for (int i = 0; i < numVertices; i++)
-		{
-			Vertex& currentVertex = object[objIdx]->vertices[i];
-			for (int j = 0; j < 3; j++) {
-				if (NULL == currentVertex.shadowedCoeffsDS[j])
-					currentVertex.shadowedCoeffsDS[j] = new vec3[numFunctions];
-			}
-		}
-	}
-
-	for (int i = 1; i <= 3; i++) {
-		generateDirectCoeffsDS(sampler, numBands, i);
-		cout << endl;
-	}
-	return 0;
-}
-
-
 bool Scene::generateDirectCoeffsGS(Sampler& sampler, int numBands )
 {
+	// TODO
 	return true;
 }
 

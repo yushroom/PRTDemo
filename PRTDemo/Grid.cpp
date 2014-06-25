@@ -23,7 +23,7 @@ Grid::Grid(Object* model) : model(model), cells(NULL)
 	float cubeRoot = 3.f * powf(float(totalNumTriangles), 1.f / 3.f);
 	float cellsPerUnitDist = cubeRoot * invMaxSize;
 	for (uint8_t axis = 0; axis < 3; ++axis) {
-		nCell[axis] = std::floor(delta[axis] * cellsPerUnitDist);
+		nCell[axis] = int(std::floor(delta[axis] * cellsPerUnitDist));
 		nCell[axis] = clamp(nCell[axis], 1, 128);
 	}
 #else
@@ -79,7 +79,7 @@ Grid::Grid(Object* model) : model(model), cells(NULL)
 		}
 	}
 
-	int maxn = 0;
+	unsigned int maxn = 0;
 	for (int i = 0; i < ncell; i++)
 		if (cells[i] != NULL && maxn < cells[i]->triangles.size())
 			maxn = cells[i]->triangles.size();
@@ -112,7 +112,7 @@ bool intersectTriangle( Ray &r, vec3 &v0, vec3& v1, vec3& v2, float &t, float &u
 int Grid::Cell::intersect(Ray&ray) const
 {
 	//cout << "Grid::Cell::intersect" << endl;
-	float uhit, vhit;
+	//float uhit, vhit;
 	for (uint32_t i = 0; i < triangles.size(); ++i) {
 		//cout << "triangles.size() = " << triangles.size() << endl;
 		int index = triangles[i];

@@ -176,8 +176,7 @@ void PRTRenderer::precomputeColor(Scene& scene, Light& light)
 
 				vec3 brightness(0.f, 0.f, 0.f);
 
-				for(int k=0; k < light.numFunctions; ++k) {
-					//brightness += light.rotatedLightCoeffs[k]*currentVertex.unshadowedCoeffs[k];
+				for(unsigned k = 0; k < light.numFunctions; ++k) {
 					brightness.r += light.rotatedCoeffs->r[k] * currentVertex.unshadowedCoeffs[k].r;
 					brightness.g += light.rotatedCoeffs->g[k] * currentVertex.unshadowedCoeffs[k].g;
 					brightness.b += light.rotatedCoeffs->b[k] * currentVertex.unshadowedCoeffs[k].b;
@@ -185,56 +184,53 @@ void PRTRenderer::precomputeColor(Scene& scene, Light& light)
 				
 				currentVertex.litColor = brightness*currentVertex.diffuseMaterial;
 			}
-		}
-
-		else if(lightingType==LIGHTING_TYPE_SH_SHADOWED)
-		{
-			for(int j=0; j<numVertices; ++j)
-			{
-				Vertex & currentVertex=currentObject->vertices[j];
-
-				vec3 brightness(0.f, 0.f, 0.f);
-
-				for(int k = 0; k < light.numFunctions; ++k) {
-					//brightness += light.rotatedLightCoeffs[k]*currentVertex.shadowedCoeffs[k];
-					//brightness += light.coeffs[k]*currentVertex.shadowedCoeffs[k];
-					brightness.r += light.rotatedCoeffs->r[k] * currentVertex.shadowedCoeffs[k].r;
-					brightness.g += light.rotatedCoeffs->g[k] * currentVertex.shadowedCoeffs[k].g;
-					brightness.b += light.rotatedCoeffs->b[k] * currentVertex.shadowedCoeffs[k].b;
-				}
-
-				currentVertex.litColor = brightness*currentVertex.diffuseMaterial;
-			}
-		}
-		
+		}		
 		else {
 			for(int j=0; j<numVertices; ++j)
 			{
 				Vertex & currentVertex=currentObject->vertices[j];
 				vec3 brightness(0.f, 0.f, 0.f);
 				
-				//vec3* pShowedCoeffs; 
-				//if(lightingType == LIGHTING_TYPE_SH_SHADOWED_BOUNCE_1)
-				//{
-				//	pShowedCoeffs =  currentVertex.shadowedCoeffs[]
-				//}
-				int idx = lightingType - LIGHTING_TYPE_SH_SHADOWED_BOUNCE_1;
-				if (idx > 2) idx = 2;
+				int idx = lightingType - LIGHTING_TYPE_SH_SHADOWED;
+				if (idx > 3) idx = 3;
 				else if (idx < 0 ) idx =0;
 
-				for(int k = 0; k < light.numFunctions; ++k) {
+				for(unsigned k = 0; k < light.numFunctions; ++k) {
 					//brightness += light.rotatedLightCoeffs[k]*currentVertex.shadowedCoeffs[k];
 					//brightness += light.coeffs[k]*currentVertex.shadowedCoeffs[k];
-					brightness.r += light.rotatedCoeffs->r[k] * currentVertex.shadowedCoeffsDS[idx][k].r;
-					brightness.g += light.rotatedCoeffs->g[k] * currentVertex.shadowedCoeffsDS[idx][k].g;
-					brightness.b += light.rotatedCoeffs->b[k] * currentVertex.shadowedCoeffsDS[idx][k].b;
+					brightness.r += light.rotatedCoeffs->r[k] * currentVertex.shadowedCoeffs[idx][k].r;
+					brightness.g += light.rotatedCoeffs->g[k] * currentVertex.shadowedCoeffs[idx][k].g;
+					brightness.b += light.rotatedCoeffs->b[k] * currentVertex.shadowedCoeffs[idx][k].b;
 				}
 
 				currentVertex.litColor = brightness*currentVertex.diffuseMaterial;
 			}
 		}
 	}
+
 }
+
+//void updateColor()
+//{
+//	// glMapBufferRange : 需要指定目标缓冲区，缓冲区起始下标，更新长度，以及更新的操作目的
+//	GLfloat *data = ( GLfloat * ) glMapBufferRange( GL_ARRAY_BUFFER, 0 * sizeof( GLfloat ), 6 * sizeof( GLfloat ), GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_WRITE_BIT );
+//	if( data != ( GLfloat * ) NULL ) {
+//
+//		printf( " Before : %.1f, %.1f, %.1f, %.1f, %.1f, %.1f \n", *( data + 0 ), *( data + 1 ), *( data + 2 ), *( data + 3 ), *( data + 4 ), *( data + 5 ) );
+//
+//		*( data + 0 ) = 0.0;
+//		*( data + 1 ) = 0.5;
+//		*( data + 2 ) = 1.0;
+//		*( data + 3 ) = -1;
+//		*( data + 4 ) = -1;
+//		*( data + 5 ) = 0;
+//
+//		printf( "  After : %.1f, %.1f, %.1f, %.1f, %.1f, %.1f \n", *( data + 0 ), *( data + 1 ), *( data + 2 ), *( data + 3 ), *( data + 4 ), *( data + 5 ) );
+//
+//		glFlushMappedBufferRange( GL_ARRAY_BUFFER, 0 * sizeof( GLfloat ), 6 * sizeof( GLfloat ) );
+//
+//		glUnmapBuffer( GL_ARRAY_BUFFER );
+//}
 
 void PRTRenderer::getFPS()
 {
@@ -242,7 +238,7 @@ void PRTRenderer::getFPS()
 	static int nbFrames = 0;
 	double currentTime = glfwGetTime();
 	nbFrames++;
-	if (currentTime - lastTime >= 1.0) {
+	if (currentTime - lastTime >= 2) {
 		cout << "FPS: " << nbFrames << endl;
 		nbFrames = 0;
 		lastTime = currentTime;
@@ -282,38 +278,6 @@ void PRTRenderer::renderSceneWithLight(Scene& scene, Light& light)
 		glfwPollEvents();
 	}
 }
-
-void PRTRenderer::render2(Scene& scene)
-{
-	while (!glfwWindowShouldClose(window)) {
-		
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glMatrixMode(GL_MODELVIEW);
-
-		if (bAnim) changeMatrics();
-
-		glEnableVertexAttribArray(0);
-		glEnableVertexAttribArray(1);
-		//glEnableVertexAttribArray(2);
-
-		glBindBuffer(GL_ARRAY_BUFFER, scene.VB);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)0);	// position
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)(sizeof(glm::vec3)+sizeof(glm::vec3)));// color
-		//glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)(sizeof(glm::vec3)+sizeof(glm::vec2)));
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, scene.IB);
-
-		glDrawElements(GL_TRIANGLES, scene.numIndices, GL_UNSIGNED_INT, 0);
-
-		glDisableVertexAttribArray(0);
-		glDisableVertexAttribArray(1);
-		//glDisableVertexAttribArray(2);
-
-		glfwSwapBuffers(window);
-		glfwPollEvents();
-	}
-}
-
 
 // glfw call-back function
 //========================================================================

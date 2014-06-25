@@ -9,6 +9,7 @@ class AABB
 public:
 	vec3 min;
 	vec3 max;
+
 	AABB() : max(INT_MIN, INT_MIN, INT_MIN), min(INT_MAX, INT_MAX, INT_MAX) {}
 	
 	void expand(const vec3& p) {
@@ -36,24 +37,7 @@ public:
 				max.z >= p.z && p.z >= min.z);
 	}
 
-	bool intersect(Ray& ray, float* hitt0 = NULL, float* hitt1 = NULL) const {
-		float t0 = ray.tmin, t1 = ray.tmax;
-		for (int i = 0; i < 3; ++i) {
-			// Update interval for _i_th bounding box slab
-			float invRayDir = 1.f / ray.direction[i];
-			float tNear = (min[i] - ray.source[i]) * invRayDir;
-			float tFar  = (max[i] - ray.source[i]) * invRayDir;
-
-			// Update parametric interval from slab intersection $t$s
-			if (tNear > tFar) std::swap(tNear, tFar);
-			t0 = tNear > t0 ? tNear : t0;
-			t1 = tFar  < t1 ? tFar  : t1;
-			if (t0 > t1) return false;
-		}
-		if (hitt0) *hitt0 = t0;
-		if (hitt1) *hitt1 = t1;
-		return true;
-	}
+	bool intersect(Ray& ray, float* hitt0 = NULL, float* hitt1 = NULL) const;
 
 };
 

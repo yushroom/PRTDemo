@@ -66,7 +66,7 @@ Light* Light::lightFromImage(const char* imagePath, Sampler& sampler, int numBan
 	}
 
 
-	for (int i = 0; i < sampler.size(); i++) {
+	for (unsigned i = 0; i < sampler.size(); i++) {
 		vec3& direction = sampler.samples[i].direction;
 		for (int j = 0; j < numBands*numBands; j++) {
 			vec3 color;

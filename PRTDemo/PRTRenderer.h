@@ -31,9 +31,8 @@ public:
 	void precomputeColor(Scene& scene, Light& light);
 	void renderSceneWithLight(Scene& scene, Light& light);
 	void bindAttributes(Scene& scene);
-	void getFPS();
 
-
+	// shader
 	ShaderProgram prog;
 
 private:
@@ -45,6 +44,8 @@ private:
 	GLuint vertexArrayID;
 	GLuint vertexbuffer;
 	GLuint normalbuffer;
+
+	GLuint vaoHandle;
 
 	GLFWwindow* window;
 
@@ -64,6 +65,9 @@ private:
 	static GLfloat zoom;
 	static int cursorX;
 	static int cursorY;
+
+	// tools
+	void getFPS();
 
 	static LIGHTING_TYPE lightingType;
 };

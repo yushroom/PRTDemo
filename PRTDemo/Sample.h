@@ -51,10 +51,10 @@ public:
 			}
 		}
 	}
-	int size() { return samples.size(); }
+	unsigned int size() { return samples.size(); }
 
 
-	Sample& operator[](int idx) {
+	Sample& operator[](unsigned int idx) {
 		assert(idx >=0 && idx < samples.size());
 		return samples[idx];
 	}

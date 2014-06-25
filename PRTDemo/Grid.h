@@ -4,7 +4,6 @@
 #include "global.h"
 #include "Ray.h"
 #include "AABB.h"
-//#include "Object.h"
 
 class Object;
 
@@ -27,8 +26,8 @@ public:
 		// TODO
 	}
 	int intersect(Ray& ray) const;
-	uint32_t nCell[3];	// 
-	vec3 cellSize;		// width of cells
+	uint32_t nCell[3];		// 
+	vec3 cellSize;			// width of cells
 	int ncell;				// total # of cells
 	AABB bbox;
 	Cell** cells;

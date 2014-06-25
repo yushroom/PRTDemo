@@ -5,31 +5,31 @@
 class Vertex
 {
 public:
-	Vertex() : unshadowedCoeffs(NULL), shadowedCoeffs(NULL), diffuseMaterial(1.f, 1.f, 1.f), isBlocked(NULL), blockIdx(NULL)  {
-		for (int i = 0; i < 3; i++)
-			shadowedCoeffsDS[i] = NULL;
+	Vertex() : litColor(1.f, 1.f, 1.f), unshadowedCoeffs(NULL), diffuseMaterial(1.f, 1.f, 1.f), isBlocked(NULL), blockIdx(NULL)  
+	{
+		for (int i = 0; i < 4; i++)
+			shadowedCoeffs[i] = NULL;
 	}
+
 	Vertex(float px, float py, float pz, float nx, float ny, float nz) 
-		: position(px, py, pz), normal(nx, ny, nz), unshadowedCoeffs(NULL), shadowedCoeffs(NULL), 
+		: position(px, py, pz), normal(nx, ny, nz), litColor(1.f, 1.f, 1.f), unshadowedCoeffs(NULL), 
 		diffuseMaterial(1.f, 1.f, 1.f), isBlocked(NULL), blockIdx(NULL)  
 	{
 		normal = glm::normalize(normal);
-		for (int i = 0; i < 3; i++)
-			shadowedCoeffsDS[i] = NULL;
+		for (int i = 0; i < 4; i++)
+			shadowedCoeffs[i] = NULL;
 	}
 
 	~Vertex() {
-		if(unshadowedCoeffs)
-			delete [] unshadowedCoeffs;
+		delete []unshadowedCoeffs;
 		unshadowedCoeffs=NULL;
 
-		if(shadowedCoeffs)
-			delete [] shadowedCoeffs;
-		shadowedCoeffs=NULL;
-		if (isBlocked != NULL)
-			delete[] isBlocked;
-		if (blockIdx != NULL)
-			delete[] blockIdx;
+		for (int i = 0; i < 4; i++) {
+			delete [] shadowedCoeffs[i];
+			shadowedCoeffs[i] = 0;
+		}
+		delete[] isBlocked;
+		delete[] blockIdx;
 		isBlocked =NULL;
 		blockIdx = NULL;
 	}
@@ -38,11 +38,9 @@ public:
 	vec3 normal;
 	vec3 litColor;
 	vec3 diffuseMaterial;
-	//float* unshadowedCoeffs;
-	//float* shadowedCoeffs;
 	vec3* unshadowedCoeffs;
-	vec3* shadowedCoeffs;
-	vec3* shadowedCoeffsDS[3];
+	vec3* shadowedCoeffs[4];	// 0-shadowed, 1~3 shadowed and self-transfer
+	//vec3* shadowedCoeffsDS[3];
 
 	bool* isBlocked;	// true if the ray in this direction is blocked;
 	int* blockIdx;		// tirangle index (if blocked)

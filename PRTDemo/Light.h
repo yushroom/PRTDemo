@@ -70,8 +70,8 @@ public:
 	// Update the rotated light coefficients
 	void rotateSHCoefficients(float theta, float phi);
 
-	int numBands;
-	int numFunctions;			// = numBands * numBands
+	unsigned int numBands;
+	unsigned int numFunctions;			// = numBands * numBands
 
 	SHCoeffs* coeffs;			// has already multiply by light intensity
 	SHCoeffs* rotatedCoeffs;

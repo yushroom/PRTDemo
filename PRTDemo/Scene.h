@@ -9,11 +9,7 @@ class Scene
 {
 public:
 	bool addModelFromFile(const char* path);
-	bool generateDirectCoeffs(Sampler& sampler, int numBands);	// diffuse
-	bool generateDirectCoeffsDS(Sampler& sampler, int numBands, int bounceTime);
-	bool generateDirectCoeffsDS(Sampler& sampler, int numBands);
-	bool generateDirectCoeffsGS(Sampler& sampler, int numBands );	// glossy surface self-transfer
-
+	bool generateCoeffs(Sampler& sampler, int numBands);					 // prepare to generate coeffs
 	void bindBuffer();
 
 	int isRayBlocked(Ray& ray);
@@ -23,6 +19,11 @@ public:
 	GLuint IB;
 	int numIndices;
 
+private:
+	bool generateCoeffsUnshadowedAndShadowed(Sampler& sampler, int numBands);// diffuse unshadowed and shadowed transfer
+	bool generateCoeffsDS(Sampler& sampler, int numBands, int bounceTime);	 // diffuse interreflected transfer
+	//bool generateDirectCoeffsDS(Sampler& sampler, int numBands);	
+	bool generateDirectCoeffsGS(Sampler& sampler, int numBands );	// glossy surface self-transfer. not implemented
 };
 
 #endif //_SCENE_H_

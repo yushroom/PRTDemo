@@ -1,0 +1,13 @@
+本项目（PRTDemo）基于VS2012创建，如果用其他版本的VS，请根据报告中“VS中的设置”一节修改（主要是修改glfw的lib目录）。
+
+源代码位于PRTDemo目录下，release版程序位于Release目录下。
+第三方库位于PRTDemo/3rdparty目录下，包括Assimp，FreeImage，glew，glfw，glm，如有问题，您可以重新下载（链接在报告中给出），并按报告中的说明配置好include和lib的目录。
+
+操作说明
+  空格键：物体旋转
+  移动鼠标（按下鼠标左键）：	转动光源
+  1:	unshadowed模式
+  2:	shadowed模式
+  3:	interreflected模式（1次反射）
+  4:	interreflected模式（2次反射）
+  5:	interreflected模式（3次反射）
